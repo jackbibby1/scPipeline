@@ -65,7 +65,7 @@ pre_process_scrna <- function(filepath = NULL,
 
     ## read the cellranger files
     message("Reading in data with `Read10X`")
-    df <- pbapply::pblapply(folders, function(x) Read10X(data.dir = x))
+    df <- pbapply::pblapply(folders, function(x) Seurat::Read10X(data.dir = x))
 
   } else if (file_type == "h5") {
 
