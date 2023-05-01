@@ -211,52 +211,72 @@ process_scrna <- function(seurat_object = NULL,
                           num_var_features = 2000,
                           num_sct_features = 3000,
                           generate_tsne = FALSE,
-                          batch_correction = FALSE,
-                          correction_method = "harmony",
+                          batch_correction = TRUE,
+                          correction_method = "cca",
                           batch_correction_group = NULL,
                           nintegration_features = 3000,
                           integration_strength = 5) {
 
 
+  if (batch_correction == FALSE |
+      batch_correction == TRUE &
+      correction_method == "harmony" |
+      correction_method == "rpca") {
 
-  ##---------- normalisation
+    cat("----- Initial normalisation and scaling pipeline \n")
 
-  ## normalise via log
-  if (normalisation_method == "LogNormalize") {
+    if (batch_correction == TRUE & correction_method == "harmony") {
+      message("Performing normalisation and scaling for harmony or RPCA")
+    } else if (batch_correction == FALSE) {
+      message("Performing normalisation without batch correction")
+    }
 
-    message("Normalizing data using LogNormalize")
-    seurat_object <- lapply(seurat_object, function(x) {
+    ##---------- normalisation
 
-      x %>% Seurat::NormalizeData() %>%
-        Seurat::FindVariableFeatures(nfeatures = num_var_features) %>%
-        Seurat::ScaleData() %>%
+    ## normalise via log
+    if (normalisation_method == "LogNormalize") {
+
+      message("Normalizing data using LogNormalize")
+      seurat_object <- lapply(seurat_object, function(x) {
+
+        x %>% Seurat::NormalizeData() %>%
+          Seurat::FindVariableFeatures(nfeatures = num_var_features) %>%
+          Seurat::ScaleData() %>%
+          Seurat::RunPCA(verbose = FALSE)
+
+      })
+
+    } else if (normalisation_method == "SCT") {
+
+      ## normalise by sct
+      message("Normalizing data using SCT")
+      seurat_object <- Seurat::SCTransform(seurat_object, method = "glmGamPoi") %>%
         Seurat::RunPCA(verbose = FALSE)
 
-    })
+    } else {
 
-  } else if (normalisation_method == "SCT") {
+      stop("Choose either LogNormalize or SCT for normalisation_method")
 
-    ## normalise by sct
-    message("Normalizing data using SCT")
-    seurat_object <- Seurat::SCTransform(seurat_object, method = "glmGamPoi") %>%
-      Seurat::RunPCA(verbose = FALSE)
-
-  } else {
-
-    stop("Choose either LogNormalize or SCT for normalisation_method")
+    }
 
   }
 
+
   ##---------- choosing dimensions
 
-  message("Generating elbow plot of PCs")
-  print(Seurat::ElbowPlot(seurat_object, ndims = 50))
-  elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
-  elbow_value <- as.numeric(elbow_value)
+  if (batch_correction == TRUE & correction_method != "cca") {
+    message("Generating elbow plot of PCs")
+    print(Seurat::ElbowPlot(seurat_object, ndims = 50))
+    elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
+    elbow_value <- as.numeric(elbow_value)
+  }
+
 
   ##---------- batch correction
 
   if (batch_correction == TRUE) {
+
+    cat("----- Batch correction pipeline \n")
 
     if (correction_method == "harmony") {
 
@@ -308,6 +328,8 @@ process_scrna <- function(seurat_object = NULL,
   }
 
   ##---------- umap/tsne and clustering
+
+  cat("----- Downstream clustering and dimensionality reduction pipeline \n")
 
   if (batch_correction == TRUE & correction_method == "harmony") {
 
