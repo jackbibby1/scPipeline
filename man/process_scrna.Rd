@@ -10,8 +10,8 @@ process_scrna(
   num_var_features = 2000,
   num_sct_features = 3000,
   generate_tsne = FALSE,
-  batch_correction = FALSE,
-  correction_method = "harmony",
+  batch_correction = TRUE,
+  correction_method = "cca",
   batch_correction_group = NULL,
   nintegration_features = 3000,
   integration_strength = 5

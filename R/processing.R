@@ -59,7 +59,7 @@ pre_process_scrna <- function(filepath = NULL,
     }
 
     message("Adding folder names to metadata information")
-    metadata <- metadata %>% mutate(filename = folders)
+    metadata <- metadata %>% dplyr::mutate(filename = folders)
 
     cat("----- Folders to process are: ", folders, sep = "\n")
 
@@ -78,12 +78,12 @@ pre_process_scrna <- function(filepath = NULL,
     }
 
     message("Adding file names to metadata information")
-    metadata <- metadata %>% mutate(filename = files)
+    metadata <- metadata %>% dplyr::mutate(filename = files)
 
     cat("----- Files to process are: ", files, sep = "\n")
 
     message("Reading in data with `Read10X_h5`")
-    df <- pbapply::pblapply(files, function(x) Read10X_h5(filename = x))
+    df <- pbapply::pblapply(files, function(x) Seurat::Read10X_h5(filename = x))
 
   } else if (file_type == "tab") {
 
@@ -96,11 +96,11 @@ pre_process_scrna <- function(filepath = NULL,
     }
 
     message("Adding file names to metadata information")
-    metadata <- metadata %>% mutate(filename = files)
+    metadata <- metadata %>% dplyr::mutate(filename = files)
 
     cat("----- Files to process are: ", files, sep = "\n")
 
-    df <- pbapply::pblapply(folders, function(x) read.delim(file = x, header = T, quote = F, sep = "\t"))
+    df <- pbapply::pblapply(folders, function(x) utils::read.delim(file = x, header = T, quote = F, sep = "\t"))
 
   } else {
 
@@ -130,9 +130,9 @@ pre_process_scrna <- function(filepath = NULL,
                                            linewidth = 0.3) +
                        ggplot2::scale_y_continuous(breaks = seq(0, 100, 10), limits = c(-5, 100)) +
                        ggplot2::theme(legend.position = "none",
-                                      axis.text.x = element_blank(),
-                                      axis.title.x = element_blank(),
-                                      plot.title = element_blank()))
+                                      axis.text.x = ggplot2::element_blank(),
+                                      axis.title.x = ggplot2::element_blank(),
+                                      plot.title = ggplot2::element_blank()))
 
   })
   print(patchwork::wrap_plots(plots))
@@ -312,7 +312,7 @@ process_scrna <- function(seurat_object = NULL,
 
       message("Batch correcting data using Seurat CCA based on ", batch_correction_group)
       seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
-      seurat_list <- lapply(seurat_list, function(x) SCTransform(x, method = "glmGamPoi"))
+      seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
       features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = nintegration_features)
       seurat_list <- Seurat::PrepSCTIntegration(object.list = seurat_list, anchor.features = features)
       anchors <- Seurat::FindIntegrationAnchors(object.list = seurat_list,
@@ -353,7 +353,7 @@ process_scrna <- function(seurat_object = NULL,
     message("Running RPCA/CCA pipeline")
 
     seurat_object <- Seurat::RunPCA(seurat_object, verbose = FALSE)
-    print(ElbowPlot(seurat_object, ndims = 50))
+    print(Seurat::ElbowPlot(seurat_object, ndims = 50))
     elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
     elbow_value <- as.numeric(elbow_value)
 
