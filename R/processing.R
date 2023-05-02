@@ -42,6 +42,7 @@ pre_process_scrna <- function(filepath = NULL,
 
   ##---------- read in specified file type
 
+  cat("---------- Reading in data \n")
   `%notin%` <- Negate(`%in%`)
 
   if (file_type %notin% c("cellranger", "h5", "tab")) {
@@ -50,7 +51,6 @@ pre_process_scrna <- function(filepath = NULL,
 
   if (file_type == "cellranger") {
 
-    message("Processing cellranger data")
     ## define folders to use
     folders <- list.dirs(path = filepath, full.names = T, recursive = F)
 
@@ -58,18 +58,18 @@ pre_process_scrna <- function(filepath = NULL,
       folders <- grep(x = folders, pattern = filename_pattern, ignore.case = T, value = T)
     }
 
-    message("Adding folder names to metadata information")
-    metadata <- metadata %>% dplyr::mutate(filename = folders)
-
-    cat("----- Folders to process are: ", folders, sep = "\n")
+    cat("--- Folders to process are: ", folders, sep = "\n")
+    message("Processing cellranger data")
 
     ## read the cellranger files
     message("Reading in data with `Read10X`")
     df <- pbapply::pblapply(folders, function(x) Seurat::Read10X(data.dir = x))
 
+    message("Adding folder names to metadata information")
+    metadata <- metadata %>% dplyr::mutate(filename = folders)
+
   } else if (file_type == "h5") {
 
-    message("Processing .h5 data")
     ## define files to process
     files <- list.files(path = filepath, full.names = T)
 
@@ -77,17 +77,17 @@ pre_process_scrna <- function(filepath = NULL,
       files <- grep(x = files, pattern = filename_pattern, ignore.case = T, value = T)
     }
 
-    message("Adding file names to metadata information")
-    metadata <- metadata %>% dplyr::mutate(filename = files)
-
-    cat("----- Files to process are: ", files, sep = "\n")
+    cat("--- Files to process are: ", files, sep = "\n")
+    message("Processing .h5 data")
 
     message("Reading in data with `Read10X_h5`")
     df <- pbapply::pblapply(files, function(x) Seurat::Read10X_h5(filename = x))
 
+    message("Adding file names to metadata information")
+    metadata <- metadata %>% dplyr::mutate(filename = files)
+
   } else if (file_type == "tab") {
 
-    message("Reading in data with `read.delim`")
     ## define files to process
     files <- list.files(path = filepath, full.names = T)
 
@@ -95,12 +95,13 @@ pre_process_scrna <- function(filepath = NULL,
       files <- grep(x = files, pattern = filename_pattern, ignore.case = T, value = T)
     }
 
-    message("Adding file names to metadata information")
-    metadata <- metadata %>% dplyr::mutate(filename = files)
-
-    cat("----- Files to process are: ", files, sep = "\n")
+    cat("--- Files to process are: ", files, sep = "\n")
+    message("Reading in data with `read.delim`")
 
     df <- pbapply::pblapply(folders, function(x) utils::read.delim(file = x, header = T, quote = F, sep = "\t"))
+
+    message("Adding file names to metadata information")
+    metadata <- metadata %>% dplyr::mutate(filename = files)
 
   } else {
 
@@ -110,7 +111,8 @@ pre_process_scrna <- function(filepath = NULL,
 
   ##---------- process and filter the data
 
-  message("Creating the Seurat object and adding mito percentages")
+  cat("\n---------- Processing data \n")
+  cat("--- Creating the Seurat object and adding mito percentages \n")
   ## create the seurat object
   df <- lapply(df, function(x) {
 
@@ -145,7 +147,7 @@ pre_process_scrna <- function(filepath = NULL,
 
   ##---------- adding metadata to the samples
 
-  message("Adding metadata from the supplied information: ")
+  cat("\n---------- Adding metadata to the Seurat object based on: \n")
   print(metadata)
 
   meta_names <- colnames(metadata)
@@ -159,15 +161,16 @@ pre_process_scrna <- function(filepath = NULL,
 
   ##---------- merging the data
 
+  cat("\n---------- Merging the data \n")
+  message("Merging samples 1:", length(df))
   if (merge_data == TRUE) {
 
-    message("Merging the data")
-
-    df <- merge(df[[1]],
-                df[2:length(df)])
+    df <- suppressWarnings(merge(df[[1]],
+                df[2:length(df)]))
 
   }
 
+  message("\n...Done")
   return(df)
 
 }
@@ -223,41 +226,18 @@ process_scrna <- function(seurat_object = NULL,
       correction_method == "harmony" |
       correction_method == "rpca") {
 
-    cat("----- Initial normalisation and scaling pipeline \n")
+    cat("---------- Running pipeline for initial normalisation and scaling \n")
 
-    if (batch_correction == TRUE & correction_method == "harmony") {
-      message("Performing normalisation and scaling for harmony or RPCA")
+    if (batch_correction == TRUE & correction_method == "harmony" | correction_method == "rpca") {
+      cat("--- Performing normalisation and scaling for harmony or RPCA \n")
     } else if (batch_correction == FALSE) {
-      message("Performing normalisation without batch correction")
+      cat("--- Performing normalisation without batch correction \n")
     }
 
     ##---------- normalisation
 
-    ## normalise via log
-    if (normalisation_method == "LogNormalize") {
-
-      message("Normalizing data using LogNormalize")
-      seurat_object <- lapply(seurat_object, function(x) {
-
-        x %>% Seurat::NormalizeData() %>%
-          Seurat::FindVariableFeatures(nfeatures = num_var_features) %>%
-          Seurat::ScaleData() %>%
-          Seurat::RunPCA(verbose = FALSE)
-
-      })
-
-    } else if (normalisation_method == "SCT") {
-
-      ## normalise by sct
-      message("Normalizing data using SCT")
-      seurat_object <- Seurat::SCTransform(seurat_object, method = "glmGamPoi") %>%
-        Seurat::RunPCA(verbose = FALSE)
-
-    } else {
-
-      stop("Choose either LogNormalize or SCT for normalisation_method")
-
-    }
+    seurat_object <- normalise_data(seurat_object,
+                                    normalisation_method = normalisation_method)
 
   }
 
@@ -271,101 +251,249 @@ process_scrna <- function(seurat_object = NULL,
     elbow_value <- as.numeric(elbow_value)
   }
 
-
   ##---------- batch correction
 
   if (batch_correction == TRUE) {
 
-    cat("----- Batch correction pipeline \n")
+    cat("\n---------- Running pipeline for batch correction \n")
 
-    if (correction_method == "harmony") {
+    seurat_object <- batch_correction(seurat_object = seurat_object,
+                                      correction_method = correction_method,
+                                      batch_correction_group = batch_correction_group)
 
-      message("Batch correcting data using Harmony based on ", batch_correction_group)
-      ## run harmony on calculated pca values
-      seurat_object <- harmony::RunHarmony(seurat_object,
-                                           group.by.vars = batch_correction_group,
-                                           plot_convergence = T)
-
-    } else if (correction_method == "rpca") {
-
-      message("Batch correcting data using Seurat RPCA based on ", batch_correction_group)
-      ## reprocess data so rpca can be run
-      seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
-      seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
-      features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = num_sct_features)
-      seurat_list <- Seurat::PrepSCTIntegration(object.list = seurat_list, anchor.features = features)
-      seurat_list <- lapply(seurat_list, function(x) Seurat::RunPCA(x, features = features, verbose = FALSE))
-
-      anchors <- Seurat::FindIntegrationAnchors(object.list = seurat_list,
-                                                normalization.method = "SCT",
-                                                anchor.features = features,
-                                                dims = 1:elbow_value,
-                                                reduction = "rpca",
-                                                k.anchor = integration_strength)
-
-      seurat_object <- Seurat::IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:elbow_value)
-
-      ## remove bulky objects
-      rm(anchors, seurat_list, features)
-
-    } else if (correction_method == "cca") {
-
-      message("Batch correcting data using Seurat CCA based on ", batch_correction_group)
-      seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
-      seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
-      features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = nintegration_features)
-      seurat_list <- Seurat::PrepSCTIntegration(object.list = seurat_list, anchor.features = features)
-      anchors <- Seurat::FindIntegrationAnchors(object.list = seurat_list,
-                                                normalization.method = "SCT",
-                                                anchor.features = features)
-      seurat_object <- Seurat::IntegrateData(anchorset = anchors, normalization.method = "SCT")
-
-      ## remove bulky objects
-      rm(anchors, seurat_list, features)
-
-    }
 
   }
 
   ##---------- umap/tsne and clustering
 
-  cat("----- Downstream clustering and dimensionality reduction pipeline \n")
+  cat("\n---------- Downstream clustering and dimensionality reduction pipeline \n")
 
   if (batch_correction == TRUE & correction_method == "harmony") {
 
-    message("Running downstream harmony pipeline")
+    cat("--- Running downstream harmony pipeline \n")
 
-    if (generate_tsne == TRUE) {
+    seurat_object <- harmony_clustering(seurat_object = seurat_object)
 
-      message("Calculating tSNE using dims 1:", elbow_value)
-      seurat_object <- Seurat::RunTSNE(seurat_object, dims = 1:elbow_value)
+  } else {
 
+    if (batch_correction == TRUE & correction_method %in% c("rpca", "cca")) {
+      cat("--- Running RPCA/CCA pipeline \n")
+    } else {
+      cat("--- Running standard clustering pipeline \n")
     }
 
-    message("Calculating UMAP using dims 1:", elbow_value)
-
-    seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value) %>%
-      Seurat::FindNeighbors(dims = 1:elbow_value) %>%
-      Seurat::FindClusters(resolution = 0.5)
-
-  } else if (batch_correction == TRUE & correction_method %in% c("rpca", "cca")) {
-
-    message("Running RPCA/CCA pipeline")
-
-    seurat_object <- Seurat::RunPCA(seurat_object, verbose = FALSE)
-    print(Seurat::ElbowPlot(seurat_object, ndims = 50))
-    elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
-    elbow_value <- as.numeric(elbow_value)
-
-    seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value) %>%
-      Seurat::FindNeighbors(dims = 1:elbow_value) %>%
-      Seurat::FindClusters(resolution = 0.5)
+    seurat_object <- seurat_clustering(seurat_object = seurat_object)
 
   }
 
+  message("\n...Done")
   return(seurat_object)
 
 }
+
+
+#' Perform normalisation via log or SCT
+#'
+#' This function takes a Seurat object as an input and performs normalisation
+#' (log or sctransform), batch correction (harmony, RPCA, or CCA), clustering, and
+#' dimred (tSNE or UMAP).
+#'
+#' @param data Seurat object with non-normalised values
+#'
+#' @examples \dontrun{
+#'   data <- normalise_data(seurat_object = seu_obj)
+#' }
+#'
+#' @return A Seurat object that contains normalised data
+#'
+#' @export
+#'
+#'
+
+normalise_data <- function(seurat_object = NULL,
+                           normalisation_method = NULL) {
+
+  ## normalise via log
+  if (normalisation_method == "LogNormalize") {
+
+    cat("--- Normalizing data using LogNormalize \n")
+    seurat_object <- lapply(seurat_object, function(x) {
+
+      x %>% Seurat::NormalizeData() %>%
+        Seurat::FindVariableFeatures(nfeatures = num_var_features) %>%
+        Seurat::ScaleData() %>%
+        Seurat::RunPCA(verbose = FALSE)
+
+    })
+
+  } else if (normalisation_method == "SCT") {
+
+    ## normalise by sct
+    cat("--- Normalizing data using SCT \n")
+    seurat_object <- Seurat::SCTransform(seurat_object, method = "glmGamPoi") %>%
+      Seurat::RunPCA(verbose = FALSE)
+
+  } else {
+
+    stop("Choose either LogNormalize or SCT for normalisation_method")
+
+  }
+
+}
+
+
+#' Batch correction
+#'
+#' This function takes a Seurat object as an input and performs batch
+#' correction using either harmony, RPCA, or CCA
+#'
+#' @param data Seurat object with normalised and scaled values, typically with
+#' PCA calculated.
+#'
+#' @examples \dontrun{
+#'   data <- batch_correction(seurat_object = seu_obj,
+#'                            batch_correction = TRUE,
+#'                            correction_method = "harmony",
+#'                            batch_correction_group = "sample")
+#' }
+#'
+#' @return A Seurat object that contains batch corrected data
+#'
+#' @export
+#'
+#'
+
+
+batch_correction <- function(seurat_object = NULL,
+                             batch_correction = NULL,
+                             correction_method = NULL,
+                             batch_correction_group = NULL) {
+
+  if (correction_method == "harmony") {
+
+    cat("--- Batch correcting data using Harmony based on metadata group:", batch_correction_group, "\n")
+    ## run harmony on calculated pca values
+    seurat_object <- harmony::RunHarmony(seurat_object,
+                                         group.by.vars = batch_correction_group,
+                                         plot_convergence = T)
+
+  } else if (correction_method == "rpca") {
+
+    cat("--- Batch correcting data using Seurat RPCA based on metadata group:", batch_correction_group, "\n")
+    ## reprocess data so rpca can be run
+    seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
+    seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
+    features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = num_sct_features)
+    seurat_list <- Seurat::PrepSCTIntegration(object.list = seurat_list, anchor.features = features)
+    seurat_list <- lapply(seurat_list, function(x) Seurat::RunPCA(x, features = features, verbose = FALSE))
+
+    anchors <- Seurat::FindIntegrationAnchors(object.list = seurat_list,
+                                              normalization.method = "SCT",
+                                              anchor.features = features,
+                                              dims = 1:elbow_value,
+                                              reduction = "rpca",
+                                              k.anchor = integration_strength)
+
+    seurat_object <- Seurat::IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:elbow_value)
+
+    ## remove bulky objects
+    rm(anchors, seurat_list, features)
+
+  } else if (correction_method == "cca") {
+
+    cat("---Batch correcting data using Seurat CCA based on metadata group:", batch_correction_group, "\n")
+    seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
+    seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
+    features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = nintegration_features)
+    seurat_list <- Seurat::PrepSCTIntegration(object.list = seurat_list, anchor.features = features)
+    anchors <- Seurat::FindIntegrationAnchors(object.list = seurat_list,
+                                              normalization.method = "SCT",
+                                              anchor.features = features)
+    seurat_object <- Seurat::IntegrateData(anchorset = anchors, normalization.method = "SCT")
+
+    ## remove bulky objects
+    rm(anchors, seurat_list, features)
+
+  }
+
+
+}
+
+
+
+#' Harmony downstream pipeline
+#'
+#' This function takes a harmony corrected Seurat object as an input
+#' and performs downstream clustering and dimensionality reduction
+#'
+#' @param data Seurat object with normalised data and harmony corrected PCs
+#'
+#' @examples \dontrun{
+#'   data <- hanmony_clustering(seurat_object = seu_obj)
+#' }
+#'
+#' @return A Seurat object that contains batch corrected data
+#'
+#' @export
+#'
+#'
+
+hanmony_clustering <- function(seurat_object = NULL,
+                               generate_tsne = generate_tsne) {
+
+  if (generate_tsne == TRUE) {
+
+    message("Calculating tSNE using dims 1:", elbow_value)
+    seurat_object <- Seurat::RunTSNE(seurat_object,
+                                     dims = 1:elbow_value,
+                                     reduction = "harmony")
+
+  }
+
+  message("Performing UMAP using dims 1:", elbow_value)
+
+  seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, reduction = "harmony", verbose = FALSE) %>%
+    Seurat::FindNeighbors(dims = 1:elbow_value, reduction = "harmony", verbose = F) %>%
+    Seurat::FindClusters(resolution = 0.5, verbose = F)
+
+}
+
+
+#' RPCA/CCA downstream pipeline
+#'
+#' This function takes a Seurat object as an input
+#' and performs downstream clustering and dimensionality reduction
+#'
+#' @param data Seurat object with normalised data
+#'
+#' @examples \dontrun{
+#'   data <- batch_correction(seurat_object = seu_obj)
+#' }
+#'
+#' @return A Seurat object that contains batch corrected data
+#'
+#' @export
+#'
+#'
+
+seurat_clustering <- function(seurat_object = NULL) {
+
+  seurat_object <- Seurat::RunPCA(seurat_object, verbose = FALSE)
+  print(Seurat::ElbowPlot(seurat_object, ndims = 50))
+  elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
+  elbow_value <- as.numeric(elbow_value)
+
+  message("Performing UMAP using dims 1:", elbow_value)
+
+  seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, verbose = FALSE) %>%
+    Seurat::FindNeighbors(dims = 1:elbow_value, verbose = F) %>%
+    Seurat::FindClusters(resolution = 0.5, verbose = F)
+
+}
+
+
+
+
 
 
 
