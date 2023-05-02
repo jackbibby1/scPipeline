@@ -27,4 +27,5 @@ harmony_data <- process_scrna(seurat_object = test,
                               batch_correction_group = "sample")
 
 
-DimPlot(harmony_data, group.by = "sample")
+DimPlot(harmony_data, split.by = "sample", reduction = "harmony")
+
