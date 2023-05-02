@@ -37,13 +37,14 @@ process_scrna <- function(seurat_object = NULL,
                           num_sct_features = 3000,
                           generate_tsne = FALSE,
                           batch_correction = TRUE,
-                          correction_method = NULL,
+                          correction_method = "harmony",
                           batch_correction_group = NULL,
                           nintegration_features = 3000,
                           integration_strength = 5) {
 
 
   cat("---------- Running pipeline for initial normalisation and scaling \n")
+
   if (batch_correction == TRUE & correction_method == "cca") {
     cat("--- Data will be normalised later during integration \n")
   }
@@ -196,6 +197,7 @@ batch_correction <- function(seurat_object = NULL,
                              correction_method = NULL,
                              batch_correction_group = NULL,
                              nintegration_features = NULL,
+                             num_sct_features = NULL,
                              integration_strength = NULL) {
 
   if (correction_method == "harmony") {
@@ -209,10 +211,11 @@ batch_correction <- function(seurat_object = NULL,
   } else if (correction_method == "rpca") {
 
     cat("--- Batch correcting data using Seurat RPCA based on metadata group:", batch_correction_group, "\n")
+    cat("--- Data to be split across batch and normalised independently \n")
     ## reprocess data so rpca can be run
     seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
     seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
-    features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = num_sct_features)
+    features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list)
     seurat_list <- Seurat::PrepSCTIntegration(object.list = seurat_list, anchor.features = features)
     seurat_list <- lapply(seurat_list, function(x) Seurat::RunPCA(x, features = features, verbose = FALSE))
 
@@ -229,6 +232,7 @@ batch_correction <- function(seurat_object = NULL,
   } else if (correction_method == "cca") {
 
     cat("--- Batch correcting data using Seurat CCA based on metadata group:", batch_correction_group, "\n")
+    cat("--- Data to be split across batch and normalised independently \n")
     seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
     seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
     features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = nintegration_features)
