@@ -10,10 +10,12 @@ Pipeline for basic end-to-end scRNA-seq processing
 - `pre_process_scrna()` covers: 
   - Reading in data, either cellranger, h5, or tab files
   - Filtering based on mito percentages
+  - Prompt asks user for mt cutoff before proceeding
   - Adding metadata
   - Merging samples if >1
 - `process_scrna()` covers:
   - Normalisation
+  - Prompts user input for PC ndims for UMAP and RPCA before proceeding
   - Batch correction and integration (harmony, RPCA, or CCA)
   - Dimensionality reduction (PCA, UMAP, and tSNE)
   - Clustering
