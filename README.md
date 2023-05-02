@@ -1,16 +1,15 @@
 WIP - don't use
 
 # scPipeline
-Pipeline for basic end-to-end scRNA-seq processing
 
-### Simplified functions for end to end processing of scRNA-seq data
+- Pipeline for basic end-to-end scRNA-seq processing
 
-#### Functions:
+#### Main functions:
 
 - `pre_process_scrna()` covers: 
   - Reading in data, either cellranger, h5, or tab files
   - Filtering based on mito percentages
-  - Prompt asks user for mt cutoff before proceeding
+  - Prompt user for input on mito cutoff before proceeding
   - Adding metadata
   - Merging samples if >1
 - `process_scrna()` covers:
@@ -23,6 +22,7 @@ Pipeline for basic end-to-end scRNA-seq processing
 #### Example:
 
 ```ruby
+
 # set wdir and generate metadata ------------------------------------------
 setwd("path-to/wdir")
 folders <- list.dirs("data", recursive = F)
@@ -30,6 +30,8 @@ metadata <- data.frame(donor = str_extract(string = folders, pattern = "d[0-9]")
                        disease_status = str_extract(string = folders, pattern = "healthy|disease"))
 
 # pre-process data --------------------------------------------------------
+# generates Seurat object of all merged cellranger folders
+
 df <- pre_process_scrna(filepath = "data",
                         file_type = "cellranger",
                         filename_pattern = "filtered",
@@ -39,7 +41,10 @@ df <- pre_process_scrna(filepath = "data",
                         metadata = metadata,
                         merge_data = TRUE)
 
+
 # downstream processing ---------------------------------------------------
+# generates Seurat object of harmony integrated data after SCT normalisation
+
 df <- process_scrna(seurat_object = df,
                     normalisation_method = "SCT",
                     num_sct_features = 3000,
@@ -47,5 +52,6 @@ df <- process_scrna(seurat_object = df,
                     batch_correction = TRUE,
                     correction_method = "harmony",
                     batch_correction_group = "donor")
+                    
 ```
 
