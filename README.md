@@ -1,5 +1,3 @@
-WIP - don't use
-
 # scPipeline
 
 - Pipeline for basic end-to-end scRNA-seq processing
