@@ -3,7 +3,7 @@ Type: Package
 Title: Pipeline for scRNA-seq processing
 Version: 0.1.0
 Author: person(given = "Jack", family = "Bibby", email = "jack.bibby@nih.gov", role = c("aut", "cre"))
-Maintainer: The package maintainer <yourself@somewhere.net>
+Maintainer: Jack Bibby <jack.bibby@nih.govt>
 Description: Pipeline for reading in scRNA-seq data, normalisation, batch correction,
     dimensionality reduction, and clustering.
 License: GPL (>= 3)
