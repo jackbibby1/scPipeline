@@ -46,12 +46,24 @@ pre_process_scrna <- function(filepath = NULL,
   `%notin%` <- Negate(`%in%`)
 
   if (file_type %notin% c("cellranger", "h5", "tab")) {
-    stop("For cell_type, choose between cellranger, h5, or tab")
+    stop("For file_type, choose between cellranger, h5, or tab", call. = F)
   }
 
   df <- reading_data(filepath = filepath,
                      file_type = file_type,
                      filename_pattern = filename_pattern)
+
+  if (file_type == "cellranger") {
+
+    message("Adding folder names to metadata information")
+    updated_metadata <- metadata %>% dplyr::mutate(filepath = folders)
+
+  } else if (file_type %in% c("h5", "tab")) {
+
+    message("Adding file names to metadata information")
+    updated_metadata <- metadata %>% dplyr::mutate(filepath = files)
+
+  }
 
   ##---------- process and filter the data
 
@@ -66,40 +78,46 @@ pre_process_scrna <- function(filepath = NULL,
 
   })
 
-  message("Plotting the mito percentages")
-  ## plot the mito percentages for all cells
-  plots <- lapply(df, function(x) {
+  if (plot_mito == TRUE) {
 
-    suppressMessages(Seurat::VlnPlot(x, features = "percent_mt", pt.size = 0.1) +
-                       ggplot2::geom_hline(yintercept = seq(0, 100, 10),
-                                           col = "gray40",
-                                           linetype = "dashed",
-                                           linewidth = 0.3) +
-                       ggplot2::scale_y_continuous(breaks = seq(0, 100, 10), limits = c(-5, 100)) +
-                       ggplot2::theme(legend.position = "none",
-                                      axis.text.x = ggplot2::element_blank(),
-                                      axis.title.x = ggplot2::element_blank(),
-                                      plot.title = ggplot2::element_blank()))
+    message("Plotting the mito percentages")
+    ## plot the mito percentages for all cells
+    plots <- lapply(df, function(x) {
 
-  })
-  print(patchwork::wrap_plots(plots))
+      suppressMessages(Seurat::VlnPlot(x, features = "percent_mt", pt.size = 0.1) +
+                         ggplot2::geom_hline(yintercept = seq(0, 100, 10),
+                                             col = "gray40",
+                                             linetype = "dashed",
+                                             linewidth = 0.3) +
+                         ggplot2::scale_y_continuous(breaks = seq(0, 100, 10), limits = c(-5, 100)) +
+                         ggplot2::theme(legend.position = "none",
+                                        axis.text.x = ggplot2::element_blank(),
+                                        axis.title.x = ggplot2::element_blank(),
+                                        plot.title = ggplot2::element_blank()))
 
-  ## filter based on mito percentages
-  mito_percent <- readline(prompt = "Choose % mito cutoff: ")
-  mito_percent <- as.numeric(mito_percent)
-  message("Using ", mito_percent, "% as the mito cutoff")
-  df <- lapply(df, function(x) subset(x, percent_mt < mito_percent))
+    })
+    print(patchwork::wrap_plots(plots))
+
+    ## filter based on mito percentages
+    cat("--- Filtering based on mito percentages \n")
+    mito_percent <- readline(prompt = "Choose % mito cutoff: ")
+    mito_percent <- as.numeric(mito_percent)
+    message("Using ", mito_percent, "% as the mito cutoff")
+    df <- lapply(df, function(x) subset(x, percent_mt < mito_percent))
+
+  }
+
 
   ##---------- adding metadata to the samples
 
   cat("\n---------- Adding metadata to the Seurat object based on: \n")
-  print(metadata)
+  print(updated_metadata)
 
-  meta_names <- colnames(metadata)
-  for (i in 1:nrow(metadata)) {
+  meta_names <- colnames(updated_metadata)
+  for (i in 1:nrow(updated_metadata)) {
     for (y in meta_names) {
 
-      df[[i]] <- Seurat::AddMetaData(df[[i]], col.name = y, metadata = metadata[, y][i])
+      df[[i]] <- Seurat::AddMetaData(df[[i]], col.name = y, metadata = updated_metadata[, y][i])
 
     }
   }
@@ -144,17 +162,17 @@ pre_process_scrna <- function(filepath = NULL,
 #'
 
 
-reading_data <- function(filepath = filepath,
-                         file_type = file_type,
-                         filename_pattern = filename_pattern) {
+reading_data <- function(filepath = NULL,
+                         file_type = NULL,
+                         filename_pattern = NULL) {
 
   if (file_type == "cellranger") {
 
     ## define folders to use
-    folders <- list.dirs(path = filepath, full.names = T, recursive = F)
+    folders <<- list.dirs(path = filepath, full.names = T, recursive = F)
 
     if (!is.null(filename_pattern)) {
-      folders <- grep(x = folders, pattern = filename_pattern, ignore.case = T, value = T)
+      folders <<- grep(x = folders, pattern = filename_pattern, ignore.case = T, value = T)
     }
 
     cat("--- Folders to process are: ", folders, sep = "\n")
@@ -164,16 +182,13 @@ reading_data <- function(filepath = filepath,
     message("Reading in data with `Read10X`")
     df <- pbapply::pblapply(folders, function(x) Seurat::Read10X(data.dir = x))
 
-    message("Adding folder names to metadata information")
-    metadata <- metadata %>% dplyr::mutate(filename = folders)
-
   } else if (file_type == "h5") {
 
     ## define files to process
-    files <- list.files(path = filepath, full.names = T)
+    files <<- list.files(path = filepath, full.names = T)
 
     if (!is.null(filename_pattern)) {
-      files <- grep(x = files, pattern = filename_pattern, ignore.case = T, value = T)
+      files <<- grep(x = files, pattern = filename_pattern, ignore.case = T, value = T)
     }
 
     cat("--- Files to process are: ", files, sep = "\n")
@@ -182,25 +197,19 @@ reading_data <- function(filepath = filepath,
     message("Reading in data with `Read10X_h5`")
     df <- pbapply::pblapply(files, function(x) Seurat::Read10X_h5(filename = x))
 
-    message("Adding file names to metadata information")
-    metadata <- metadata %>% dplyr::mutate(filename = files)
-
   } else if (file_type == "tab") {
 
     ## define files to process
-    files <- list.files(path = filepath, full.names = T)
+    files <<- list.files(path = filepath, full.names = T)
 
     if (!is.null(filename_pattern)) {
-      files <- grep(x = files, pattern = filename_pattern, ignore.case = T, value = T)
+      files <<- grep(x = files, pattern = filename_pattern, ignore.case = T, value = T)
     }
 
     cat("--- Files to process are: ", files, sep = "\n")
     message("Reading in data with `read.delim`")
 
     df <- pbapply::pblapply(folders, function(x) utils::read.delim(file = x, header = T, quote = F, sep = "\t"))
-
-    message("Adding file names to metadata information")
-    metadata <- metadata %>% dplyr::mutate(filename = files)
 
   } else {
 

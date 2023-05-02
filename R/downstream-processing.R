@@ -37,18 +37,21 @@ process_scrna <- function(seurat_object = NULL,
                           num_sct_features = 3000,
                           generate_tsne = FALSE,
                           batch_correction = TRUE,
-                          correction_method = "cca",
+                          correction_method = NULL,
                           batch_correction_group = NULL,
                           nintegration_features = 3000,
                           integration_strength = 5) {
 
 
+  cat("---------- Running pipeline for initial normalisation and scaling \n")
+  if (batch_correction == TRUE & correction_method == "cca") {
+    cat("--- Data will be normalised later during integration \n")
+  }
+
   if (batch_correction == FALSE |
       batch_correction == TRUE &
       correction_method == "harmony" |
       correction_method == "rpca") {
-
-    cat("---------- Running pipeline for initial normalisation and scaling \n")
 
     if (batch_correction == TRUE & correction_method == "harmony" | correction_method == "rpca") {
       cat("--- Performing normalisation and scaling for harmony or RPCA \n")
@@ -58,7 +61,7 @@ process_scrna <- function(seurat_object = NULL,
 
     ##---------- normalisation
 
-    seurat_object <- normalise_data(seurat_object,
+    seurat_object <- normalise_data(seurat_object = seurat_object,
                                     normalisation_method = normalisation_method)
 
   }
@@ -70,7 +73,7 @@ process_scrna <- function(seurat_object = NULL,
     message("Generating elbow plot of PCs")
     print(Seurat::ElbowPlot(seurat_object, ndims = 50))
     elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
-    elbow_value <- as.numeric(elbow_value)
+    elbow_value <<- as.numeric(elbow_value)
   }
 
   ##---------- batch correction
@@ -81,8 +84,9 @@ process_scrna <- function(seurat_object = NULL,
 
     seurat_object <- batch_correction(seurat_object = seurat_object,
                                       correction_method = correction_method,
-                                      batch_correction_group = batch_correction_group)
-
+                                      batch_correction_group = batch_correction_group,
+                                      nintegration_features = nintegration_features,
+                                      integration_strength = integration_strength)
 
   }
 
@@ -94,7 +98,8 @@ process_scrna <- function(seurat_object = NULL,
 
     cat("--- Running downstream harmony pipeline \n")
 
-    seurat_object <- harmony_clustering(seurat_object = seurat_object)
+    seurat_object <- harmony_clustering(seurat_object = seurat_object,
+                                        generate_tsne = generate_tsne)
 
   } else {
 
@@ -104,7 +109,8 @@ process_scrna <- function(seurat_object = NULL,
       cat("--- Running standard clustering pipeline \n")
     }
 
-    seurat_object <- seurat_clustering(seurat_object = seurat_object)
+    seurat_object <- seurat_clustering(seurat_object = seurat_object,
+                                       generate_tsne = generate_tsne)
 
   }
 
@@ -187,9 +193,10 @@ normalise_data <- function(seurat_object = NULL,
 
 
 batch_correction <- function(seurat_object = NULL,
-                             batch_correction = NULL,
                              correction_method = NULL,
-                             batch_correction_group = NULL) {
+                             batch_correction_group = NULL,
+                             nintegration_features = NULL,
+                             integration_strength = NULL) {
 
   if (correction_method == "harmony") {
 
@@ -218,12 +225,10 @@ batch_correction <- function(seurat_object = NULL,
 
     seurat_object <- Seurat::IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:elbow_value)
 
-    ## remove bulky objects
-    rm(anchors, seurat_list, features)
 
   } else if (correction_method == "cca") {
 
-    cat("---Batch correcting data using Seurat CCA based on metadata group:", batch_correction_group, "\n")
+    cat("--- Batch correcting data using Seurat CCA based on metadata group:", batch_correction_group, "\n")
     seurat_list <- Seurat::SplitObject(seurat_object, split.by = batch_correction_group)
     seurat_list <- lapply(seurat_list, function(x) Seurat::SCTransform(x, method = "glmGamPoi"))
     features <- Seurat::SelectIntegrationFeatures(object.list = seurat_list, nfeatures = nintegration_features)
@@ -233,8 +238,6 @@ batch_correction <- function(seurat_object = NULL,
                                               anchor.features = features)
     seurat_object <- Seurat::IntegrateData(anchorset = anchors, normalization.method = "SCT")
 
-    ## remove bulky objects
-    rm(anchors, seurat_list, features)
 
   }
 
@@ -260,8 +263,8 @@ batch_correction <- function(seurat_object = NULL,
 #'
 #'
 
-hanmony_clustering <- function(seurat_object = NULL,
-                               generate_tsne = generate_tsne) {
+harmony_clustering <- function(seurat_object = NULL,
+                               generate_tsne = NULL) {
 
   if (generate_tsne == TRUE) {
 
@@ -274,7 +277,10 @@ hanmony_clustering <- function(seurat_object = NULL,
 
   message("Performing UMAP using dims 1:", elbow_value)
 
-  seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, reduction = "harmony", verbose = FALSE) %>%
+  seurat_object <- Seurat::RunUMAP(seurat_object,
+                                   dims = 1:elbow_value,
+                                   reduction = "harmony",
+                                   verbose = FALSE) %>%
     Seurat::FindNeighbors(dims = 1:elbow_value, reduction = "harmony", verbose = F) %>%
     Seurat::FindClusters(resolution = 0.5, verbose = F)
 
@@ -289,21 +295,29 @@ hanmony_clustering <- function(seurat_object = NULL,
 #' @param data Seurat object with normalised data
 #'
 #' @examples \dontrun{
-#'   data <- batch_correction(seurat_object = seu_obj)
+#'   data <- seurat_clustering(seurat_object = seurat_object)
 #' }
 #'
-#' @return A Seurat object that contains batch corrected data
+#' @return A Seurat object that contains batch-corrected data
 #'
 #' @export
 #'
 #'
 
-seurat_clustering <- function(seurat_object = NULL) {
+seurat_clustering <- function(seurat_object = NULL,
+                              generate_tsne = NULL) {
 
   seurat_object <- Seurat::RunPCA(seurat_object, verbose = FALSE)
   print(Seurat::ElbowPlot(seurat_object, ndims = 50))
   elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
-  elbow_value <- as.numeric(elbow_value)
+  elbow_value <<- as.numeric(elbow_value)
+
+  if (generate_tsne == TRUE) {
+
+    message("Calculating tSNE using dims 1:", elbow_value)
+    seurat_object <- Seurat::RunTSNE(seurat_object, dims = 1:elbow_value)
+
+  }
 
   message("Performing UMAP using dims 1:", elbow_value)
 
