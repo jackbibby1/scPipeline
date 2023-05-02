@@ -30,7 +30,7 @@ metadata <- data.frame(donor = str_extract(string = folders, pattern = "d[0-9]")
                        disease_status = str_extract(string = folders, pattern = "healthy|disease"))
 
 # pre-process data --------------------------------------------------------
-# generates Seurat object of all merged cellranger folders
+# generates single Seurat object containing data merged from all filepath folders, with annotated metadata
 
 df <- pre_process_scrna(filepath = "data",
                         file_type = "cellranger",
@@ -43,7 +43,7 @@ df <- pre_process_scrna(filepath = "data",
 
 
 # downstream processing ---------------------------------------------------
-# generates Seurat object of harmony integrated data after SCT normalisation
+# generates single Seurat object of harmony integrated data after SCT normalisation
 
 df <- process_scrna(seurat_object = df,
                     normalisation_method = "SCT",
