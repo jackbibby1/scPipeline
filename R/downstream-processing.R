@@ -54,10 +54,10 @@ process_scrna <- function(seurat_object = NULL,
       correction_method == "harmony" |
       correction_method == "rpca") {
 
-    if (batch_correction == TRUE & correction_method == "harmony" | correction_method == "rpca") {
-      cat("--- Performing normalisation and scaling for harmony or RPCA \n")
+    if (batch_correction == TRUE & correction_method %in% c("harmony", "rpca")) {
+      cat("--- Performing SCTransform and PCA analysis for harmony or RPCA \n")
     } else if (batch_correction == FALSE) {
-      cat("--- Performing normalisation without batch correction \n")
+      cat("--- Performing SCTransform and PCA analysis without batch correction \n")
     }
 
     ##---------- normalisation
@@ -66,7 +66,6 @@ process_scrna <- function(seurat_object = NULL,
                                     normalisation_method = normalisation_method)
 
   }
-
 
   ##---------- choosing dimensions
 
