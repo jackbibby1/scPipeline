@@ -7,7 +7,9 @@
 seurat_clustering(seurat_object = NULL, generate_tsne = NULL)
 }
 \arguments{
-\item{data}{Seurat object with normalised data}
+\item{seurat_object}{Seurat object with normalised data}
+
+\item{generate_tsne}{Should tSNE be calculated?}
 }
 \value{
 A Seurat object that contains batch-corrected data

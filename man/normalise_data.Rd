@@ -4,10 +4,18 @@
 \alias{normalise_data}
 \title{Perform normalisation via log or SCT}
 \usage{
-normalise_data(seurat_object = NULL, normalisation_method = NULL)
+normalise_data(
+  seurat_object = NULL,
+  normalisation_method = NULL,
+  num_var_features = NULL
+)
 }
 \arguments{
-\item{data}{Seurat object with non-normalised values}
+\item{seurat_object}{Seurat object with non-normalised values}
+
+\item{normalisation_method}{Method for normalisation (LogNormalize or SCTransform from Seurat)}
+
+\item{num_var_features}{Number of variable features if using LogNormalize}
 }
 \value{
 A Seurat object that contains normalised data

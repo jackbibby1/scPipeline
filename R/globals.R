@@ -1,1 +1,1 @@
-utils::globalVariables("percent_mt")
+utils::globalVariables(c("percent_mt", "elbow_value", "folders", "files"))

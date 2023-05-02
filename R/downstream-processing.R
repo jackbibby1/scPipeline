@@ -126,7 +126,9 @@ process_scrna <- function(seurat_object = NULL,
 #' (log or sctransform), batch correction (harmony, RPCA, or CCA), clustering, and
 #' dimred (tSNE or UMAP).
 #'
-#' @param data Seurat object with non-normalised values
+#' @param seurat_object Seurat object with non-normalised values
+#' @param normalisation_method Method for normalisation (LogNormalize or SCTransform from Seurat)
+#' @param num_var_features Number of variable features if using LogNormalize
 #'
 #' @examples \dontrun{
 #'   data <- normalise_data(seurat_object = seu_obj)
@@ -139,7 +141,8 @@ process_scrna <- function(seurat_object = NULL,
 #'
 
 normalise_data <- function(seurat_object = NULL,
-                           normalisation_method = NULL) {
+                           normalisation_method = NULL,
+                           num_var_features = NULL) {
 
   ## normalise via log
   if (normalisation_method == "LogNormalize") {
@@ -175,8 +178,14 @@ normalise_data <- function(seurat_object = NULL,
 #' This function takes a Seurat object as an input and performs batch
 #' correction using either harmony, RPCA, or CCA
 #'
-#' @param data Seurat object with normalised and scaled values, typically with
-#' PCA calculated.
+#' @param seurat_object Seurat object with normalised and scaled values, typically with
+#' PCA calculated
+#' @param correction_method Which batch correction method to use. Either "harmony", "rpca", or "cca"
+#' @param batch_correction_group Group used to correct for batch effects. Grouping data should
+#'    reference a column in the Seurat object e.g. "donor" or "donor_and_stim"
+#' @param nintegration_features Number of features used for integration
+#' @param integration_strength Strength of integration in RPCA. Refers to k
+#' @param num_sct_features Number of features to use if using SCTransform
 #'
 #' @examples \dontrun{
 #'   data <- batch_correction(seurat_object = seu_obj,
@@ -254,7 +263,8 @@ batch_correction <- function(seurat_object = NULL,
 #' This function takes a harmony corrected Seurat object as an input
 #' and performs downstream clustering and dimensionality reduction
 #'
-#' @param data Seurat object with normalised data and harmony corrected PCs
+#' @param seurat_object Seurat object with normalised data and harmony corrected PCs
+#' @param generate_tsne Should tSNE be calculated?
 #'
 #' @examples \dontrun{
 #'   data <- hanmony_clustering(seurat_object = seu_obj)
@@ -295,7 +305,8 @@ harmony_clustering <- function(seurat_object = NULL,
 #' This function takes a Seurat object as an input
 #' and performs downstream clustering and dimensionality reduction
 #'
-#' @param data Seurat object with normalised data
+#' @param seurat_object Seurat object with normalised data
+#' @param generate_tsne Should tSNE be calculated?
 #'
 #' @examples \dontrun{
 #'   data <- seurat_clustering(seurat_object = seurat_object)

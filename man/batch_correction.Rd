@@ -14,8 +14,19 @@ batch_correction(
 )
 }
 \arguments{
-\item{data}{Seurat object with normalised and scaled values, typically with
-PCA calculated.}
+\item{seurat_object}{Seurat object with normalised and scaled values, typically with
+PCA calculated}
+
+\item{correction_method}{Which batch correction method to use. Either "harmony", "rpca", or "cca"}
+
+\item{batch_correction_group}{Group used to correct for batch effects. Grouping data should
+reference a column in the Seurat object e.g. "donor" or "donor_and_stim"}
+
+\item{nintegration_features}{Number of features used for integration}
+
+\item{num_sct_features}{Number of features to use if using SCTransform}
+
+\item{integration_strength}{Strength of integration in RPCA. Refers to k}
 }
 \value{
 A Seurat object that contains batch corrected data
