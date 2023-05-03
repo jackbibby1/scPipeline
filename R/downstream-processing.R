@@ -161,7 +161,9 @@ normalise_data <- function(seurat_object = NULL,
 
     ## normalise by sct
     cat("--- Normalizing data using SCT \n")
-    seurat_object <- Seurat::SCTransform(seurat_object, method = "glmGamPoi") %>%
+    seurat_object <- Seurat::SCTransform(seurat_object,
+                                         method = "glmGamPoi",
+                                         vst.flavor = "v2") %>%
       Seurat::RunPCA(verbose = FALSE)
 
   } else {
