@@ -1,4 +1,12 @@
+# scPipeline
+
 - Pipeline for basic end-to-end scRNA-seq processing
+
+#### Installation:
+
+```
+devtools::install_github("jackbibby1/scPipeline")
+```
 
 #### Main functions:
 
