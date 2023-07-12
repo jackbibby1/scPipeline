@@ -37,6 +37,7 @@ process_scrna <- function(seurat_object = NULL,
                           num_sct_features = 3000,
                           generate_tsne = FALSE,
                           batch_correction = TRUE,
+                          export_elbow = TRUE,
                           correction_method = "harmony",
                           batch_correction_group = NULL,
                           nintegration_features = 3000,
@@ -72,6 +73,14 @@ process_scrna <- function(seurat_object = NULL,
   if (batch_correction == TRUE & correction_method != "cca") {
     message("Generating elbow plot of PCs")
     print(Seurat::ElbowPlot(seurat_object, ndims = 50))
+
+    if (export_elbow == TRUE) {
+
+      cat("--- Exporting elbow plot to check PC number")
+      ggsave("elbow_plot.png", width = 5, height = 5, dpi = 600)
+
+    }
+
     elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
     elbow_value <<- as.numeric(elbow_value)
   }
@@ -325,6 +334,14 @@ seurat_clustering <- function(seurat_object = NULL,
 
   seurat_object <- Seurat::RunPCA(seurat_object, verbose = FALSE)
   print(Seurat::ElbowPlot(seurat_object, ndims = 50))
+
+  if (export_elbow == TRUE) {
+
+    message("Exporting elbow plot to working directory")
+    ggsave("elbow_plot.png", width = 5, height = 5, dpi = 600)
+
+  }
+
   elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
   elbow_value <<- as.numeric(elbow_value)
 
