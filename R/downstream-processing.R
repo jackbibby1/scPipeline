@@ -77,7 +77,7 @@ process_scrna <- function(seurat_object = NULL,
     if (export_elbow == TRUE) {
 
       cat("--- Exporting elbow plot to check PC number")
-      ggsave("elbow_plot.png", width = 5, height = 5, dpi = 600)
+      ggplot2::ggsave("elbow_plot.png", width = 5, height = 5, dpi = 600)
 
     }
 
@@ -338,7 +338,7 @@ seurat_clustering <- function(seurat_object = NULL,
   if (export_elbow == TRUE) {
 
     message("Exporting elbow plot to working directory")
-    ggsave("elbow_plot.png", width = 5, height = 5, dpi = 600)
+    ggplot2::ggsave("elbow_plot.png", width = 5, height = 5, dpi = 600)
 
   }
 
