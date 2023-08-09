@@ -17,7 +17,6 @@ Imports:
     patchwork,
     pbapply,
     reticulate,
-    sceasy,
     SCPA,
     Seurat,
     utils
