@@ -11,6 +11,7 @@ process_scrna(
   num_sct_features = 3000,
   generate_tsne = FALSE,
   batch_correction = TRUE,
+  export_elbow = TRUE,
   correction_method = "harmony",
   batch_correction_group = NULL,
   nintegration_features = 3000,
@@ -30,7 +31,7 @@ process_scrna(
 
 \item{batch_correction}{Should batch correction be done?}
 
-\item{correction_method}{Which batch correction method to use. Either "harmony", "rpca", or "cca"}
+\item{correction_method}{Which batch correction method to use. Either "harmony", "rpca", "cca", or "scvi"}
 
 \item{batch_correction_group}{Group used to correct for batch effects. Grouping data should
 reference a column in the Seurat object e.g. "donor" or "donor_and_stim"}

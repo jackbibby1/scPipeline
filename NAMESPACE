@@ -2,7 +2,7 @@
 
 export("%>%")
 export(batch_correction)
-export(harmony_clustering)
+export(harmony_scvi_clustering)
 export(normalise_data)
 export(pre_process_scrna)
 export(process_scrna)
