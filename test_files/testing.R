@@ -1,3 +1,7 @@
+library(Seurat)
+library(tidyverse)
+devtools::load_all()
+
 files <- list.files("~/My Drive/analysis_for_people/jubayer/colitis_analysis/E-MTAB-9492_arthritis/raw_data")
 
 metadata <- data.frame(sample = files,
@@ -13,7 +17,7 @@ batch_data <- process_scrna(seurat_object = test,
 
 cca_data <- process_scrna(seurat_object = test,
                           batch_correction = TRUE,
-                          correction_method = "cca",
+                          correction_method = "scvi",
                           batch_correction_group = "sample")
 
 rpca_data <- process_scrna(seurat_object = test,
@@ -27,9 +31,8 @@ harmony_data <- process_scrna(seurat_object = test,
                               batch_correction_group = "sample")
 
 
-
-
-
+reticulate::use_condaenv(condaenv = "r-reticulate", conda = "/opt/anaconda3/bin/conda")
+reticulate::py_install(packages = c("scanpy", "scvi"))
 
 
 

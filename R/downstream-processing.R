@@ -10,7 +10,7 @@
 #' @param num_sct_features Number of features to use if using SCTransform
 #' @param generate_tsne Should a tSNE be generated?
 #' @param batch_correction Should batch correction be done?
-#' @param correction_method Which batch correction method to use. Either "harmony", "rpca", or "cca"
+#' @param correction_method Which batch correction method to use. Either "harmony", "rpca", "cca", or "scvi"
 #' @param batch_correction_group Group used to correct for batch effects. Grouping data should
 #'    reference a column in the Seurat object e.g. "donor" or "donor_and_stim"
 #' @param nintegration_features Number of features used for integration
@@ -44,9 +44,10 @@ process_scrna <- function(seurat_object = NULL,
                           integration_strength = 5) {
 
 
+  `%notin%` <- Negate(`%in%`)
   cat("---------- Running pipeline for initial normalisation and scaling \n")
 
-  if (batch_correction == TRUE & correction_method == "cca") {
+  if (batch_correction == TRUE & correction_method %in% c("cca", "scvi")) {
     cat("--- Data will be normalised later during integration \n")
   }
 
@@ -70,7 +71,7 @@ process_scrna <- function(seurat_object = NULL,
 
   ##---------- choosing dimensions
 
-  if (batch_correction == TRUE & correction_method != "cca") {
+  if (batch_correction == TRUE & correction_method %notin% c("cca", "scvi")) {
     message("Generating elbow plot of PCs")
     print(Seurat::ElbowPlot(seurat_object, ndims = 50))
 
@@ -107,8 +108,8 @@ process_scrna <- function(seurat_object = NULL,
 
     cat("--- Running downstream harmony pipeline \n")
 
-    seurat_object <- harmony_clustering(seurat_object = seurat_object,
-                                        generate_tsne = generate_tsne)
+    seurat_object <- harmony_scvi_clustering(seurat_object = seurat_object,
+                                             generate_tsne = generate_tsne)
 
   } else {
 
@@ -227,6 +228,37 @@ batch_correction <- function(seurat_object = NULL,
                                          group.by.vars = batch_correction_group,
                                          plot_convergence = T)
 
+  } else if (correction_method == "scvi") {
+
+    cat("--- Batch correcting data using scVI based on metadata group:", batch_correction_group, "\n")
+    cat("--- scVI model to be stored in dimred scvi slot", "\n")
+
+    ## import python packages
+    sc <- reticulate::import("scanpy", convert = FALSE)
+    scvi <- reticulate::import("scvi", convert = FALSE)
+
+    adata <- sceasy::convertFormat(seurat_object,
+                           from = "seurat", to = "anndata",
+                           main_layer = "counts", drop_single_values = FALSE)
+
+    # run setup_anndata
+    scvi$model$SCVI$setup_anndata(adata, batch_key = batch_correction_group)
+
+    # create the model
+    model <- scvi$model$SCVI(adata)
+
+    # train the model
+    model$train()
+
+    # get the latent representation
+    latent <- model$get_latent_representation()
+
+    # store it in the Seurat object
+    latent <- as.matrix(latent)
+    rownames(latent) <- colnames(seurat_object)
+    rm(adata)
+    seurat_object[["scvi"]] <- Seurat::CreateDimReducObject(embeddings = latent, key = "scvi_", assay = DefaultAssay(seurat_object))
+
   } else if (correction_method == "rpca") {
 
     cat("--- Batch correcting data using Seurat RPCA based on metadata group:", batch_correction_group, "\n")
@@ -268,17 +300,16 @@ batch_correction <- function(seurat_object = NULL,
 }
 
 
-
-#' Harmony downstream pipeline
+#' Harmony-scVI downstream pipeline
 #'
-#' This function takes a harmony corrected Seurat object as an input
+#' This function takes a Seurat object with harmony or scVI dimred matrix
 #' and performs downstream clustering and dimensionality reduction
 #'
 #' @param seurat_object Seurat object with normalised data and harmony corrected PCs
 #' @param generate_tsne Should tSNE be calculated?
 #'
 #' @examples \dontrun{
-#'   data <- hanmony_clustering(seurat_object = seu_obj)
+#'   data <- harmony_scvi_clustering(seurat_object = seu_obj)
 #' }
 #'
 #' @return A Seurat object that contains batch corrected data
@@ -287,15 +318,16 @@ batch_correction <- function(seurat_object = NULL,
 #'
 #'
 
-harmony_clustering <- function(seurat_object = NULL,
-                               generate_tsne = NULL) {
+harmony_scvi_clustering <- function(seurat_object = NULL,
+                               generate_tsne = NULL,
+                               correction_method = NULL) {
 
   if (generate_tsne == TRUE) {
 
     message("Calculating tSNE using dims 1:", elbow_value)
     seurat_object <- Seurat::RunTSNE(seurat_object,
                                      dims = 1:elbow_value,
-                                     reduction = "harmony")
+                                     reduction = correction_method)
 
   }
 
@@ -303,9 +335,9 @@ harmony_clustering <- function(seurat_object = NULL,
 
   seurat_object <- Seurat::RunUMAP(seurat_object,
                                    dims = 1:elbow_value,
-                                   reduction = "harmony",
+                                   reduction = correction_method,
                                    verbose = FALSE) %>%
-    Seurat::FindNeighbors(dims = 1:elbow_value, reduction = "harmony", verbose = F) %>%
+    Seurat::FindNeighbors(dims = 1:elbow_value, reduction = correction_method, verbose = F) %>%
     Seurat::FindClusters(resolution = 0.5, verbose = F)
 
 }

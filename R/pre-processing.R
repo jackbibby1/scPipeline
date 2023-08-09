@@ -209,7 +209,7 @@ reading_data <- function(filepath = NULL,
     cat("--- Files to process are: ", files, sep = "\n")
     message("Reading in data with `read.delim`")
 
-    df <- pbapply::pblapply(files, function(x) utils::read.delim(file = x, header = T, quote = "", sep = "\t", row.names = 1))
+    df <- pbapply::pblapply(files, function(x) as.matrix(data.table::fread(file = x), rownames = 1))
 
   } else {
 
