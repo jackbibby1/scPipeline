@@ -207,7 +207,7 @@ reading_data <- function(filepath = NULL,
     }
 
     cat("--- Files to process are: ", files, sep = "\n")
-    message("Reading in data with `read.delim`")
+    message("Reading in data with `fread`")
 
     df <- pbapply::pblapply(files, function(x) as.matrix(data.table::fread(file = x), rownames = 1))
 

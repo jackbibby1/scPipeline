@@ -362,7 +362,8 @@ harmony_scvi_clustering <- function(seurat_object = NULL,
 #'
 
 seurat_clustering <- function(seurat_object = NULL,
-                              generate_tsne = NULL) {
+                              generate_tsne = NULL,
+                              export_elbow = NULL) {
 
   seurat_object <- Seurat::RunPCA(seurat_object, verbose = FALSE)
   print(Seurat::ElbowPlot(seurat_object, ndims = 50))
