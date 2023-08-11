@@ -109,7 +109,8 @@ process_scrna <- function(seurat_object = NULL,
     cat("--- Running downstream harmony pipeline \n")
 
     seurat_object <- harmony_scvi_clustering(seurat_object = seurat_object,
-                                             generate_tsne = generate_tsne)
+                                             generate_tsne = generate_tsne,
+                                             correction_method = correction_method)
 
   } else {
 
@@ -320,8 +321,8 @@ batch_correction <- function(seurat_object = NULL,
 #'
 
 harmony_scvi_clustering <- function(seurat_object = NULL,
-                               generate_tsne = NULL,
-                               correction_method = NULL) {
+                                    generate_tsne = NULL,
+                                    correction_method = NULL) {
 
   if (generate_tsne == TRUE) {
 
