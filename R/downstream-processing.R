@@ -160,8 +160,9 @@ normalise_data <- function(seurat_object = NULL,
   if (normalisation_method == "LogNormalize") {
 
     cat("--- Normalizing data using LogNormalize \n")
+
     seurat_object <- seurat_object %>% Seurat::NormalizeData() %>%
-        Seurat::FindVariableFeatures(nfeatures = num_var_features) %>%
+        Seurat::FindVariableFeatures() %>%
         Seurat::ScaleData() %>%
         Seurat::RunPCA(verbose = FALSE)
 
