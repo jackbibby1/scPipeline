@@ -10,17 +10,21 @@ devtools::install_github("jackbibby1/scPipeline")
 
 #### Main functions:
 
-- `pre_process_scrna()` covers: 
-  - Reading in data, either cellranger, h5, or tab files
+- `read_scrna()` covers: 
+  - Reading in data, either cellranger, h5, or tab files (multicore option)
   - Filtering based on mito percentages
   - Prompt user for input on mito cutoff before proceeding
   - Adding metadata
   - Merging samples if >1
-- `process_scrna()` covers:
-  - Normalisation
-  - Prompts user input for PC ndims for UMAP and RPCA before proceeding
-  - Batch correction and integration (harmony, RPCA, or CCA)
-  - Dimensionality reduction (PCA, UMAP, and tSNE)
+- `norm_integration()` covers:
+  - Normalisation (Log or SCT)
+  - Getting variable features
+  - Scaling
+  - Dimensionality reduction (PCA)
+  - Batch correction and integration (any method available in `Seurat::IntegrateLayers()`)
+- `seurat_clustering()`
+  - Defining number of PCs
+  - Dimensionality reduction (UMAP and/or tSNE)
   - Clustering
 
 #### Example:
@@ -30,32 +34,31 @@ devtools::install_github("jackbibby1/scPipeline")
 # set wdir and generate metadata ------------------------------------------
 setwd("path-to/wdir")
 folders <- list.dirs("data", recursive = F)
-metadata <- data.frame(donor = str_extract(string = folders, pattern = "d[0-9]"),
-                       disease_status = str_extract(string = folders, pattern = "healthy|disease"))
+meta <- data.frame(time = rep(c(0, 12, 24), times = 4),
+                   cell = rep(c("cd4", "cd8"), each = 6),
+                   lineage = rep(c("naive", "memory"), each = 3, times = 2))
 
-# pre-process data --------------------------------------------------------
+# reading in sc data ---------------------------------------------------
 # generates single Seurat object containing data merged from all filepath folders, with annotated metadata
+df <- read_scrna(filepath = "~/Desktop/test/data",
+                 filename_pattern = "GSM",
+                 cores = 4, 
+                 metadata = meta,
+                 mito_pattern = "^MT-",
+                 merge_data = TRUE)
+                 
+# normalisation and batch correction ---------------------------------------------------           
+# performs normalisation, var features finding, scaling, PCA and joins layers
+df <- norm_integration(df,
+                       normalisation_method = "LogNormalize",
+                       batch_correction = T,
+                       correction_method = "HarmonyIntegration")
+                 
 
-df <- pre_process_scrna(filepath = "data",
-                        file_type = "cellranger",
-                        filename_pattern = "filtered",
-                        mito_pattern = "^MT-",
-                        plot_mito = TRUE,
-                        add_metadata = TRUE,
-                        metadata = metadata,
-                        merge_data = TRUE)
+# clustering data ---------------------------------------------------
+# generates single Seurat object with umap and clustering performed
 
-
-# downstream processing ---------------------------------------------------
-# generates single Seurat object of harmony integrated data after SCT normalisation
-
-df <- process_scrna(seurat_object = df,
-                    normalisation_method = "SCT",
-                    num_sct_features = 3000,
-                    generate_tsne = TRUE,
-                    batch_correction = TRUE,
-                    correction_method = "harmony",
-                    batch_correction_group = "donor")
+df <- seurat_clustering(df, reduction = "integrated")
                     
 ```
 

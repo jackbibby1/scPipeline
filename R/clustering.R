@@ -4,6 +4,7 @@
 #' and performs downstream clustering and dimensionality reduction
 #'
 #' @param seurat_object Seurat object with normalised data
+#' @param export_elbow Should the elbow plot be exported? Mainly for use in non-GUI sessions
 #' @param generate_tsne Should tSNE be calculated?
 #'
 #' @examples \dontrun{
@@ -17,10 +18,14 @@
 #'
 
 seurat_clustering <- function(seurat_object = NULL,
-                              export_elbow = NULL,
-                              generate_tsne = NULL) {
+                              reduction = "integrated",
+                              export_elbow = FALSE,
+                              generate_tsne = FALSE) {
 
   ##---------- choosing dimensions
+
+  cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+  cat("\n---------- Step 1: Choosing dimensions \n")
 
   cat("--- Generating elbow plot of PCs \n")
   print(Seurat::ElbowPlot(seurat_object, ndims = 50))
@@ -38,15 +43,29 @@ seurat_clustering <- function(seurat_object = NULL,
 
   if (generate_tsne == TRUE) {
 
-    message("Calculating tSNE using dims 1:", elbow_value)
+    message("--- Calculating tSNE using dims 1:", elbow_value)
     seurat_object <- Seurat::RunTSNE(seurat_object, dims = 1:elbow_value)
 
   }
 
   message("Performing UMAP using dims 1:", elbow_value)
 
-  seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, verbose = FALSE) %>%
-    Seurat::FindNeighbors(dims = 1:elbow_value, verbose = F) %>%
+  reduction_name <- grep(reduction, names(int_data@reductions), value = T)
+
+  seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, reduction = reduction_name, verbose = FALSE) %>%
+    Seurat::FindNeighbors(dims = 1:elbow_value, reduction = reduction_name, verbose = F) %>%
     Seurat::FindClusters(resolution = 0.5, verbose = F)
 
+  cat("\n...Done \n")
+
+  cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
+
 }
+
+
+
+
+
+
+
+

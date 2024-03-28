@@ -31,7 +31,7 @@
 #'
 #' @export
 
-pre_process_scrna <- function(filepath = NULL,
+read_scrna <- function(filepath = NULL,
                               file_type = "cellranger",
                               filename_pattern = NULL,
                               mito_pattern = "^MT-",

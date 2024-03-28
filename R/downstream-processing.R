@@ -69,7 +69,8 @@ norm_integration <- function(seurat_object = NULL,
     seurat_object <- Seurat::IntegrateLayers(object = seurat_object,
                                              method = correction_method,
                                              orig.reduction = "pca",
-                                             new.reduction = paste("integrated", correction_method, sep = "_"))
+                                             new.reduction = paste("integrated", correction_method, sep = "_"),
+                                             verbose = FALSE)
 
     cat("--- Joining layers \n")
     seurat_object <- SeuratObject::JoinLayers(seurat_object)
@@ -80,11 +81,8 @@ norm_integration <- function(seurat_object = NULL,
 
     seurat_object <- Seurat::IntegrateLayers(object = seurat_object,
                                              method = correction_method,
-                                             normalization.method = "SCT")
-
-    cat("--- Joining layers \n")
-
-    seurat_object <- SeuratObject::JoinLayers(seurat_object)
+                                             normalization.method = "SCT",
+                                             verbose = FALSE)
 
     cat("\n...Done \n")
 
@@ -137,7 +135,8 @@ normalise_data <- function(seurat_object = NULL,
     cat("--- Normalizing data using SCT \n")
     seurat_object <- Seurat::SCTransform(seurat_object,
                                          method = "glmGamPoi",
-                                         vst.flavor = "v2") %>%
+                                         vst.flavor = "v2",
+                                         verbose = FALSE) %>%
       Seurat::RunPCA(verbose = FALSE)
 
   } else {
