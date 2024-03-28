@@ -35,7 +35,7 @@ dimred (tSNE or UMAP).
 }
 \examples{
 \dontrun{
-  data <- process_scrna(seurat_object = seurat_data,
+  data <- norm_integration(seurat_object = seurat_data,
                         generate_tsne = TRUE,
                         batch_correction = TRUE,
                         correction_method = "harmony",

@@ -6,12 +6,15 @@
 \usage{
 seurat_clustering(
   seurat_object = NULL,
-  export_elbow = NULL,
-  generate_tsne = NULL
+  reduction = "integrated",
+  export_elbow = FALSE,
+  generate_tsne = FALSE
 )
 }
 \arguments{
 \item{seurat_object}{Seurat object with normalised data}
+
+\item{export_elbow}{Should the elbow plot be exported? Mainly for use in non-GUI sessions}
 
 \item{generate_tsne}{Should tSNE be calculated?}
 }

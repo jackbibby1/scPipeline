@@ -3,7 +3,7 @@
 export("%>%")
 export(norm_integration)
 export(normalise_data)
-export(pre_process_scrna)
+export(read_scrna)
 export(reading_data)
 export(seurat_clustering)
 importFrom(magrittr,"%>%")

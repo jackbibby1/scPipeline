@@ -20,7 +20,7 @@
 #'               sorted population = c("t_cell", "b_cell", "t_cell", "b_cell"))
 #'
 #' @examples \dontrun{
-#'   data <- pre_process_scrna(filepath = "raw_data",
+#'   data <- read_scrna(filepath = "raw_data",
 #'                             file_type = "cellranger",
 #'                             filename_pattern = "filtered",
 #'                             metadata = "sample_metadata")
