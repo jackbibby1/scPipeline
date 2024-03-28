@@ -10,9 +10,9 @@
 #'    some files or folders e.g. "*h5" for .h5 files.
 #' @param mito_pattern Gene pattern to recognise mitochondrial genes in the input. Defaults to
 #'    "^MT-".
+#' @param cores Number of cores to use in mclapply() for reading data
 #' @param plot_mito Produces violin plots for the mito percentages so you can choose a cutoff
 #' @param merge_data Should data be merged into a single Seurat object after processing?
-#' @param add_metadata Should metadata be added to the final object?
 #' @param metadata Metadata file for samples. This should be formatted as one sample per row, and
 #'    information regarding that sample in subsequent columns e.g.
 #'    data.frame(sample = c("sample1", "sample2", "sample3", "sample4"),
@@ -35,14 +35,15 @@ pre_process_scrna <- function(filepath = NULL,
                               file_type = "cellranger",
                               filename_pattern = NULL,
                               mito_pattern = "^MT-",
+                              cores = 8,
                               plot_mito = TRUE,
                               merge_data = TRUE,
-                              add_metadata = TRUE,
                               metadata = NULL) {
 
   ##---------- read in specified file type
 
-  cat("---------- Reading in data \n")
+  cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+  cat("\n---------- Step 1: Reading in data \n")
   `%notin%` <- Negate(`%in%`)
 
   if (file_type %notin% c("cellranger", "h5", "tab")) {
@@ -51,11 +52,12 @@ pre_process_scrna <- function(filepath = NULL,
 
   df <- reading_data(filepath = filepath,
                      file_type = file_type,
-                     filename_pattern = filename_pattern)
+                     filename_pattern = filename_pattern,
+                     cores = cores)
 
   if (file_type == "cellranger") {
 
-    message("Adding folder names to metadata information")
+    cat("  ...Adding folder names to metadata information \n")
     updated_metadata <- metadata %>% dplyr::mutate(filepath = folders)
 
   } else if (file_type %in% c("h5", "tab")) {
@@ -67,7 +69,7 @@ pre_process_scrna <- function(filepath = NULL,
 
   ##---------- process and filter the data
 
-  cat("\n---------- Processing data \n")
+  cat("\n---------- Step 2: Processing data \n")
   cat("--- Creating the Seurat object and adding mito percentages \n")
 
   ## create the seurat object
@@ -80,11 +82,11 @@ pre_process_scrna <- function(filepath = NULL,
 
   if (plot_mito == TRUE) {
 
-    message("Plotting the mito percentages")
+    cat("--- Plotting the mito percentages \n")
     ## plot the mito percentages for all cells
     plots <- lapply(df, function(x) {
 
-      suppressMessages(Seurat::VlnPlot(x, features = "percent_mt", pt.size = 0.1) +
+      suppressMessages(Seurat::VlnPlot(x, features = "percent_mt", pt.size = 0.1, slot = "counts") +
                          ggplot2::geom_hline(yintercept = seq(0, 100, 10),
                                              col = "gray40",
                                              linetype = "dashed",
@@ -102,15 +104,14 @@ pre_process_scrna <- function(filepath = NULL,
     cat("--- Filtering based on mito percentages \n")
     mito_percent <- readline(prompt = "Choose % mito cutoff: ")
     mito_percent <- as.numeric(mito_percent)
-    message("Using ", mito_percent, "% as the mito cutoff")
+    cat("Using", mito_percent, "% as the mito cutoff \n")
     df <- lapply(df, function(x) subset(x, percent_mt < mito_percent))
 
   }
 
-
   ##---------- adding metadata to the samples
 
-  cat("\n---------- Adding metadata to the Seurat object based on: \n")
+  cat("\n---------- Step 3: Adding metadata to the Seurat object based on: \n")
   print(updated_metadata)
 
   meta_names <- colnames(updated_metadata)
@@ -124,16 +125,22 @@ pre_process_scrna <- function(filepath = NULL,
 
   ##---------- merging the data
 
-  cat("\n---------- Merging the data \n")
-  message("Merging samples 1:", length(df))
+  cat("\n---------- Step 4: Merging the data \n")
+
   if (merge_data == TRUE) {
 
-    df <- suppressWarnings(merge(df[[1]],
-                df[2:length(df)]))
+    cat("--- Merging samples 1:", length(df), sep = "")
+    df <- suppressWarnings(merge(x = df[[1]], y = df[2:length(df)]))
 
-  }
+  } else {
 
-  message("\n...Done")
+    cat("--- Not merging samples \n")
+
+    }
+
+  cat("\n...Done \n")
+  cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
+
   return(df)
 
 }
@@ -164,7 +171,10 @@ pre_process_scrna <- function(filepath = NULL,
 
 reading_data <- function(filepath = NULL,
                          file_type = NULL,
-                         filename_pattern = NULL) {
+                         filename_pattern = NULL,
+                         cores = NULL) {
+
+  cat("--- Using", cores, "cores \n")
 
   if (file_type == "cellranger") {
 
@@ -176,11 +186,11 @@ reading_data <- function(filepath = NULL,
     }
 
     cat("--- Folders to process are: ", folders, sep = "\n")
-    message("Processing cellranger data")
+    cat("  ...Processing cellranger data\n")
 
     ## read the cellranger files
-    message("Reading in data with `Read10X`")
-    df <- pbapply::pblapply(folders, function(x) Seurat::Read10X(data.dir = x))
+    cat("  ...Reading in data with Read10X()\n")
+    df <- parallel::mclapply(folders, function(x) Seurat::Read10X(data.dir = x), mc.cores = cores)
 
   } else if (file_type == "h5") {
 
@@ -192,10 +202,10 @@ reading_data <- function(filepath = NULL,
     }
 
     cat("--- Files to process are: ", files, sep = "\n")
-    message("Processing .h5 data")
+    message("  ...Processing .h5 data")
 
-    message("Reading in data with `Read10X_h5`")
-    df <- pbapply::pblapply(files, function(x) Seurat::Read10X_h5(filename = x))
+    message("  ...Reading in data with `Read10X_h5`")
+    df <- parallel::mclapply(files, function(x) Seurat::Read10X_h5(filename = x), mc.cores = cores)
 
   } else if (file_type == "tab") {
 
@@ -207,9 +217,9 @@ reading_data <- function(filepath = NULL,
     }
 
     cat("--- Files to process are: ", files, sep = "\n")
-    message("Reading in data with `fread`")
+    message("  ...Reading in data with `fread`")
 
-    df <- pbapply::pblapply(files, function(x) as.matrix(data.table::fread(file = x), rownames = 1))
+    df <- parallel::mclapply(files, function(x) as.matrix(data.table::fread(file = x), rownames = 1), mc.cores = cores)
 
   } else {
 

@@ -4,7 +4,12 @@
 \alias{reading_data}
 \title{Reading in single cell data}
 \usage{
-reading_data(filepath = NULL, file_type = NULL, filename_pattern = NULL)
+reading_data(
+  filepath = NULL,
+  file_type = NULL,
+  filename_pattern = NULL,
+  cores = NULL
+)
 }
 \arguments{
 \item{filepath}{File path to the directory containing the data}

@@ -9,9 +9,9 @@ pre_process_scrna(
   file_type = "cellranger",
   filename_pattern = NULL,
   mito_pattern = "^MT-",
+  cores = 8,
   plot_mito = TRUE,
   merge_data = TRUE,
-  add_metadata = TRUE,
   metadata = NULL
 )
 }
@@ -26,11 +26,11 @@ some files or folders e.g. "*h5" for .h5 files.}
 \item{mito_pattern}{Gene pattern to recognise mitochondrial genes in the input. Defaults to
 "^MT-".}
 
+\item{cores}{Number of cores to use in mclapply() for reading data}
+
 \item{plot_mito}{Produces violin plots for the mito percentages so you can choose a cutoff}
 
 \item{merge_data}{Should data be merged into a single Seurat object after processing?}
-
-\item{add_metadata}{Should metadata be added to the final object?}
 
 \item{metadata}{Metadata file for samples. This should be formatted as one sample per row, and
 information regarding that sample in subsequent columns e.g.
