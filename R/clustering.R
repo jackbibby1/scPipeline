@@ -57,8 +57,9 @@ seurat_clustering <- function(seurat_object = NULL,
     Seurat::FindClusters(resolution = 0.5, verbose = F)
 
   cat("\n...Done \n")
-
   cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
+
+  return(seurat_object)
 
 }
 
