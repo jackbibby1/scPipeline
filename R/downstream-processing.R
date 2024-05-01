@@ -85,10 +85,9 @@ norm_integration <- function(seurat_object = NULL,
                                              verbose = FALSE)
 
     cat("\n...Done \n")
+    cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
 
   }
-
-  cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
 
   return(seurat_object)
 
