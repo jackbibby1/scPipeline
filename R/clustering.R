@@ -50,7 +50,7 @@ seurat_clustering <- function(seurat_object = NULL,
 
   message("Performing UMAP using dims 1:", elbow_value)
 
-  reduction_name <- grep(reduction, names(int_data@reductions), value = T)
+  reduction_name <- grep(reduction, names(seurat_object@reductions), value = T)
 
   seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, reduction = reduction_name, verbose = FALSE) %>%
     Seurat::FindNeighbors(dims = 1:elbow_value, reduction = reduction_name, verbose = F) %>%
