@@ -48,6 +48,8 @@ norm_integration <- function(seurat_object = NULL,
                                     normalisation_method = normalisation_method)
 
     cat("\n...Done \n")
+    cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
+
     return(seurat_object)
 
   } else {
@@ -121,7 +123,7 @@ normalise_data <- function(seurat_object = NULL,
   ## normalise via log
   if (normalisation_method == "LogNormalize") {
 
-    cat("--- Normalizing data using LogNormalize \n")
+    cat("--- Normalizing data using LogNormalize \n\n")
 
     seurat_object <- Seurat::NormalizeData(seurat_object) %>%
       Seurat::FindVariableFeatures() %>%
