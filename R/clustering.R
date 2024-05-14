@@ -19,6 +19,7 @@
 
 seurat_clustering <- function(seurat_object = NULL,
                               reduction = "integrated",
+                              clustering_resolution = 0.5,
                               elbow_value = NULL,
                               export_elbow = FALSE,
                               generate_tsne = FALSE) {
@@ -58,7 +59,7 @@ seurat_clustering <- function(seurat_object = NULL,
 
   seurat_object <- Seurat::RunUMAP(seurat_object, dims = 1:elbow_value, reduction = reduction_name, verbose = FALSE) %>%
     Seurat::FindNeighbors(dims = 1:elbow_value, reduction = reduction_name, verbose = F) %>%
-    Seurat::FindClusters(resolution = 0.5, verbose = F)
+    Seurat::FindClusters(resolution = clustering_resolution, verbose = F)
 
   cat("\n...Done \n")
   cat("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
