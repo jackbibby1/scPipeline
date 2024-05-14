@@ -19,6 +19,7 @@
 
 seurat_clustering <- function(seurat_object = NULL,
                               reduction = "integrated",
+                              elbow_value = NULL,
                               export_elbow = FALSE,
                               generate_tsne = FALSE) {
 
@@ -37,9 +38,12 @@ seurat_clustering <- function(seurat_object = NULL,
 
   }
 
-  elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
-  elbow_value <<- as.numeric(elbow_value)
+  if (is.null(elbow_value)) {
 
+    elbow_value <- readline(prompt = "Choose number of PCs based on elbow plot: ")
+    elbow_value <<- as.numeric(elbow_value)
+
+  }
 
   if (generate_tsne == TRUE) {
 
