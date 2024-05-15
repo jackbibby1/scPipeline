@@ -18,7 +18,6 @@
 #'    data.frame(sample = c("sample1", "sample2", "sample3", "sample4"),
 #'               disease = c("healthy", "healthy", "disease", "disease"),
 #'               sorted population = c("t_cell", "b_cell", "t_cell", "b_cell"))
-#'               Extra bit
 #'
 #' @examples \dontrun{
 #'   data <- read_scrna(filepath = "raw_data",
