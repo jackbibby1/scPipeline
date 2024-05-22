@@ -32,13 +32,15 @@
 #' @export
 
 read_scrna <- function(filepath = NULL,
-                              file_type = "cellranger",
-                              filename_pattern = NULL,
-                              mito_pattern = "^MT-",
-                              cores = 8,
-                              plot_mito = TRUE,
-                              merge_data = TRUE,
-                              metadata = NULL) {
+                       file_type = "cellranger",
+                       filename_pattern = NULL,
+                       mito_pattern = "^MT-",
+                       cores = 8,
+                       cite_seq = FALSE,
+                       plot_mito = TRUE,
+                       filter_mito = TRUE,
+                       merge_data = TRUE,
+                       metadata = NULL) {
 
   ##---------- read in specified file type
 
@@ -72,13 +74,30 @@ read_scrna <- function(filepath = NULL,
   cat("\n---------- Step 2: Processing data \n")
   cat("--- Creating the Seurat object and adding mito percentages \n")
 
-  ## create the seurat object
-  df <- lapply(df, function(x) {
+  if (cite_seq == TRUE) {
 
-    Seurat::CreateSeuratObject(x) %>%
-      Seurat::PercentageFeatureSet(pattern = mito_pattern, col.name = "percent_mt")
+    cat("--- Expecting CITE-Seq data \n")
 
-  })
+    df <- parallel::mclapply(df, function(x) {
+
+      combined_data <- Seurat::CreateSeuratObject(x[["Gene Expression"]])
+      combined_data[["ADT"]] <- Seurat::CreateAssayObject(x[["Antibody Capture"]][, colnames(combined_data)])
+      combined_data <- Seurat::PercentageFeatureSet(combined_data, pattern = mito_pattern, col.name = "percent_mt")
+      return(combined_data)
+
+    }, mc.cores = cores)
+
+  } else {
+
+    ## create the seurat object
+    df <- parallel::mclapply(df, function(x) {
+
+      Seurat::CreateSeuratObject(x) %>%
+        Seurat::PercentageFeatureSet(pattern = mito_pattern, col.name = "percent_mt")
+
+    }, mc.cores = cores)
+
+  }
 
   if (plot_mito == TRUE) {
 
