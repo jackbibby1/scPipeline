@@ -28,8 +28,9 @@
 
 norm_integration <- function(seurat_object = NULL,
                              normalisation_method = "LogNormalize",
+                             join_layers = TRUE,
                              generate_tsne = FALSE,
-                             batch_correction = TRUE,
+                             batch_correction = FALSE,
                              correction_method = "RPCAIntegration") {
 
 
@@ -42,7 +43,11 @@ norm_integration <- function(seurat_object = NULL,
     cat("--- Not performing batch correction \n")
     cat("--- Joining layers \n")
 
+    if (join_layers == TRUE){
+
     seurat_object <- SeuratObject::JoinLayers(seurat_object)
+
+    }
 
     seurat_object <- normalise_data(seurat_object = seurat_object,
                                     normalisation_method = normalisation_method)
