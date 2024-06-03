@@ -9,7 +9,7 @@
 #' @param filename_pattern Regex for the filenames or folders in the filepath. Used if you only want to process
 #'    some files or folders e.g. "*h5" for .h5 files.
 #' @param mito_pattern Gene pattern to recognise mitochondrial genes in the input. Defaults to
-#'    "^MT-".
+#'    human "^MT-".
 #' @param cores Number of cores to use in mclapply() for reading data
 #' @param plot_mito Produces violin plots for the mito percentages so you can choose a cutoff
 #' @param merge_data Should data be merged into a single Seurat object after processing?
