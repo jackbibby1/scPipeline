@@ -40,7 +40,9 @@ read_scrna <- function(filepath = NULL,
                        plot_mito = TRUE,
                        filter_mito = TRUE,
                        merge_data = TRUE,
-                       metadata = NULL) {
+                       metadata = NULL,
+                       min_cells = 10,
+                       min_features = 200) {
 
   ##---------- read in specified file type
 
@@ -80,7 +82,7 @@ read_scrna <- function(filepath = NULL,
 
     df <- parallel::mclapply(df, function(x) {
 
-      combined_data <- Seurat::CreateSeuratObject(x[["Gene Expression"]])
+      combined_data <- Seurat::CreateSeuratObject(x[["Gene Expression"]], min.cells = min_cells, min.features = min_features)
       combined_data[["ADT"]] <- Seurat::CreateAssayObject(x[["Antibody Capture"]][, colnames(combined_data)])
       combined_data <- Seurat::PercentageFeatureSet(combined_data, pattern = mito_pattern, col.name = "percent_mt")
       return(combined_data)
@@ -92,7 +94,7 @@ read_scrna <- function(filepath = NULL,
     ## create the seurat object
     df <- parallel::mclapply(df, function(x) {
 
-      Seurat::CreateSeuratObject(x) %>%
+      Seurat::CreateSeuratObject(x, min.cells = min_cells, min.features = min_features) %>%
         Seurat::PercentageFeatureSet(pattern = mito_pattern, col.name = "percent_mt")
 
     }, mc.cores = cores)
